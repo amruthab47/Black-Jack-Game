@@ -1,0 +1,123 @@
+import random
+import pickle
+
+# Initialize the deck
+def initialize_deck():
+    ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+    suits = ['♥', '♦', '♣', '♠']
+    deck = [{'rank': rank, 'suit': suit} for rank in ranks for suit in suits]
+    random.shuffle(deck)
+    return deck
+
+# Calculate the value of a hand
+def calculate_hand_value(hand):
+    values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 10, 'Q': 10, 'K': 10, 'A': 11}
+    value = sum(values[card['rank']] for card in hand)
+    aces = [card for card in hand if card['rank'] == 'A']
+    while value > 21 and aces:
+        value -= 10
+        aces.pop()
+    return value
+
+
+# Display card outlines
+def display_card_outline(card):
+    print(f" ___________")
+    print(f"|           |")
+    print(f"| {card['rank']:<2}        |")
+    print(f"| {card['suit'][0]:<2}        |")
+    print(f"|           |")
+    print(f"|           |")
+    print(f"|           |")
+    print(f"|           |")
+    print(f"|           |")
+    print(f"|           |")
+    print(f"_____________")
+
+# Display the player's hand
+def display_hand(player_hand, title):
+    print(f"{title}'s Hand:")
+    for card in player_hand:
+        display_card_outline(card)
+    print(f"{title}'s Hand Value: {calculate_hand_value(player_hand)}\n")
+
+# Save scores to a binary file
+def save_scores(scores):
+    with open('scores.dat', 'wb') as file:
+        pickle.dump(scores, file)
+
+# Load scores from a binary file
+def load_scores():
+    try:
+        with open('scores.dat', 'rb') as file:
+            scores = pickle.load(file)
+    except FileNotFoundError:
+        scores = {}
+    return scores
+
+# Main game loop
+def blackjack_game():
+    scores = load_scores()
+    while True:
+        print("Welcome to Blackjack!")
+        player_hand = []
+        dealer_hand = []
+        deck = initialize_deck()
+        for _ in range(2):
+            player_hand.append(deck.pop())
+            dealer_hand.append(deck.pop())
+
+        player_code = input("Enter your player code: ")
+
+        print("Menu:")
+        print("1. Start a new game")
+        print("2. Show scores")
+        print("3. Quit")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            player_value = calculate_hand_value(player_hand)
+            dealer_value = calculate_hand_value(dealer_hand)
+
+            while player_value < 21:
+                display_hand(player_hand, "Player")
+                display_card_outline(dealer_hand[0])
+                action = input("Do you want to 'hit' or 'stand'? ").lower()
+                if action == 'hit':
+                    player_hand.append(deck.pop())
+                    player_value = calculate_hand_value(player_hand)
+                elif action == 'stand':
+                    break
+
+            while dealer_value < 17:
+                dealer_hand.append(deck.pop())
+                dealer_value = calculate_hand_value(dealer_hand)
+
+            display_hand(player_hand, "Player")
+            display_hand(dealer_hand, "Dealer")
+
+            if player_value > 21 or (dealer_value <= 21 and dealer_value >= player_value):
+                print("Dealer wins!")
+                if player_code in scores:
+                    scores[player_code] -= 1
+                else:
+                    scores[player_code] = -1
+            elif dealer_value > 21 or player_value > dealer_value:
+                print("You win!")
+                if player_code in scores:
+                    scores[player_code] += 1
+                else:
+                    scores[player_code] = 1
+            else:
+                print("It's a tie!")
+        elif choice == '2':
+            print("Scores:")
+            for player, score in scores.items():
+                print(f"Player {player}: {score}")
+        elif choice == '3':
+            save_scores(scores)
+            print("Thanks for playing! See you next time.")
+            break
+
+if __name__ == "__main__":
+    blackjack_game()
